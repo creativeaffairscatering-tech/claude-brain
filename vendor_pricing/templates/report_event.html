@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Event Cost Report{% endblock %}
+{% block head %}
+<style>
+  .report-frame { border: none; width: 100%; min-height: 700px; border-radius: 6px; }
+  .form-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: .9em; font-weight: 600; }
+  .form-group input { max-width: 300px; }
+</style>
+{% endblock %}
+{% block content %}
+<h1>Event Cost Report</h1>
+
+<div class="card">
+  <form method="post" action="/report">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="event_name">Event Name</label>
+        <input type="text" id="event_name" name="event_name"
+               value="{{ event_name or 'Longhorn Ballroom' }}" required>
+      </div>
+      <div class="form-group">
+        <label for="guests">Guest Count</label>
+        <input type="number" id="guests" name="guests" min="1"
+               value="{{ guests or '' }}" placeholder="e.g. 250" required style="max-width:150px;">
+      </div>
+      <button type="submit" class="btn btn-gold">Generate Report</button>
+    </div>
+  </form>
+</div>
+
+{% if error %}
+<div class="error-box">{{ error }}</div>
+{% endif %}
+
+{% if report_html %}
+<div class="card" style="padding:0; overflow:hidden;">
+  <iframe srcdoc="{{ report_html | e }}" class="report-frame"></iframe>
+</div>
+<div style="margin-top:12px; display:flex; gap:10px;">
+  <form method="post" action="/report">
+    <input type="hidden" name="event_name" value="{{ event_name }}">
+    <input type="hidden" name="guests" value="{{ guests }}">
+    <button type="submit" class="btn btn-primary">Regenerate</button>
+  </form>
+  <button class="btn btn-gold" onclick="window.print()">Print / Save PDF</button>
+</div>
+{% endif %}
+
+{% if not report_html and not error %}
+<div class="card" style="color:#666; text-align:center; padding:40px;">
+  <p style="font-size:1.1em;">Enter an event name and guest count to generate a full cost report.</p>
+  <p style="font-size:.9em;">
+    The report reads live recipe data from the Google Sheet and finds the best vendor price
+    for every ingredient, then scales to your guest count.
+  </p>
+</div>
+{% endif %}
+{% endblock %}

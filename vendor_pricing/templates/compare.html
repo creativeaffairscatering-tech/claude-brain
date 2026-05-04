@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Compare Prices{% endblock %}
+{% block content %}
+<h1>Compare Ingredient Prices</h1>
+
+<div class="card">
+  <form method="get" action="/compare" style="display:flex; gap:12px; align-items:flex-end;">
+    <div style="flex:1;">
+      <label style="display:block; font-size:.9em; margin-bottom:4px; font-weight:600;">
+        Ingredient Name
+      </label>
+      <input type="text" name="q" value="{{ query }}"
+             placeholder="e.g. Chicken Breast, Kosher Salt, Mozzarella…"
+             style="max-width:100%;">
+    </div>
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+</div>
+
+{% if error %}
+<div class="error-box">{{ error }}</div>
+{% endif %}
+
+{% if query and not results %}
+<div class="card" style="color:#666;">
+  No ingredients found matching <strong>"{{ query }}"</strong>.
+  Try a shorter or different keyword.
+</div>
+{% endif %}
+
+{% for result in results %}
+<div class="card">
+  <h2 style="margin-top:0;">
+    {{ result.canonical_name }}
+    <small style="font-weight:400; color:#888; font-size:.75em;">{{ result.ing_id }}</small>
+  </h2>
+
+  {% if result.prices %}
+  <table>
+    <thead>
+      <tr>
+        <th>Vendor</th>
+        <th>CPU</th>
+        <th>UOM</th>
+        <th>Pack Size</th>
+        <th>Pack Price</th>
+        <th>Last Updated</th>
+        <th>vs. Best</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set best_cpu = result.prices[0].cpu %}
+      {% for p in result.prices %}
+      <tr {% if loop.first %}style="background:#f0fff0;"{% endif %}>
+        <td>
+          {% if loop.first %}<strong>{% endif %}
+          {{ p.vendor }}
+          {% if loop.first %}⭐</strong>{% endif %}
+        </td>
+        <td>
+          {% if loop.first %}<strong style="color:#2a7a2a;">{% endif %}
+          ${{ "%.4f"|format(p.cpu) }}
+          {% if loop.first %}</strong>{% endif %}
+        </td>
+        <td>{{ p.uom }}</td>
+        <td>{{ p.pack_size }}</td>
+        <td>${{ "%.2f"|format(p.pack_price) }}</td>
+        <td>{{ p.date }}</td>
+        <td>
+          {% if loop.first %}
+            <span class="badge badge-green">BEST</span>
+          {% else %}
+            {% set pct = ((p.cpu - best_cpu) / best_cpu * 100)|round(1) %}
+            <span class="badge badge-yellow">+{{ pct }}%</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if result.savings_vs_worst > 0 %}
+  <p style="margin:10px 0 0; font-size:.9em; color:#2a7a2a;">
+    💰 Potential savings vs. worst vendor:
+    <strong>${{ "%.4f"|format(result.savings_vs_worst) }}/{{ result.prices[0].uom }}</strong>
+  </p>
+  {% endif %}
+
+  {% else %}
+  <p style="color:#888;">No price data on file for this ingredient.</p>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

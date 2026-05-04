@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Error{% endblock %}
+{% block content %}
+<h1>Connection Error</h1>
+<div class="card error-box">
+  <strong>Could not load data from Google Sheets:</strong><br><br>
+  {{ error }}
+</div>
+<p>Check that your <code>.env</code> file has valid credentials and the spreadsheet ID is correct, then run <code>vp auth</code> to re-authorize.</p>
+<a href="/" class="btn btn-primary">← Try Again</a>
+{% endblock %}

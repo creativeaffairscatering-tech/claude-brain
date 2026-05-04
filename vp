@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Entry point: run as `python vp <command>` from the repo root."""
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+from vendor_pricing.cli import cli
+if __name__ == "__main__":
+    cli()

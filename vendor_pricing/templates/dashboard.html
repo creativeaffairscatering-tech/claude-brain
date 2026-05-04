@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block head %}
+<style>
+  .savings-bar-wrap { background: #eee; border-radius: 4px; height: 8px; margin-top: 4px; }
+  .savings-bar { background: #e8b94f; border-radius: 4px; height: 8px; }
+  .vendor-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #eee; }
+  .vendor-row:last-child { border-bottom: none; }
+  .vendor-name { width: 180px; font-weight: 600; }
+  .vendor-rows { color: #555; font-size: .9em; }
+  .vendor-date { margin-left: auto; font-size: .85em; color: #888; }
+  .stale { color: #856404; }
+</style>
+{% endblock %}
+{% block content %}
+<h1>Vendor Pricing Dashboard</h1>
+
+<div class="grid-3">
+  <div class="card stat-box">
+    <div class="num">{{ status.total_rows }}</div>
+    <div class="lbl">Price Records (DUMP)</div>
+  </div>
+  <div class="card stat-box">
+    <div class="num">{{ status.vendors | length }}</div>
+    <div class="lbl">Active Vendors</div>
+  </div>
+  <div class="card stat-box">
+    <div class="num">{{ ingredient_count }}</div>
+    <div class="lbl">Canonical Ingredients</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Vendor Status -->
+  <div class="card">
+    <h2>Vendor Status</h2>
+    {% for vendor, info in status.vendors.items() %}
+    <div class="vendor-row">
+      <span class="vendor-name">{{ vendor }}</span>
+      <span class="vendor-rows">{{ info.rows }} rows</span>
+      <span class="vendor-date {% if info.last_date < today_minus_14 %}stale{% endif %}">
+        {{ info.last_date or 'No data' }}
+        {% if info.last_date and info.last_date < today_minus_14 %}⚠{% endif %}
+      </span>
+    </div>
+    {% else %}
+    <p style="color:#888">No vendor data in DUMP yet.</p>
+    {% endfor %}
+    <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="/vendors" class="btn btn-primary" style="font-size:.85em;">Manage Vendors</a>
+      <button class="btn btn-gold" style="font-size:.85em;" onclick="refreshCompare()">
+        Refresh 01B Compare Tab
+      </button>
+    </div>
+  </div>
+
+  <!-- Top Savings -->
+  <div class="card">
+    <h2>Top Savings Opportunities</h2>
+    {% if top_savings %}
+      {% set max_saving = top_savings[0].savings_vs_worst %}
+      {% for result in top_savings %}
+      <div style="margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; font-size:.9em;">
+          <strong>{{ result.canonical_name }}</strong>
+          <span style="color:#2a7a2a; font-weight:700;">
+            save ${{ "%.4f"|format(result.savings_vs_worst) }}/{{ result.prices[0].uom }}
+          </span>
+        </div>
+        <div style="font-size:.8em; color:#666;">
+          Best: {{ result.prices[0].vendor }} @ ${{ "%.4f"|format(result.prices[0].cpu) }}
+          &nbsp;·&nbsp;
+          Worst: {{ result.prices[-1].vendor }} @ ${{ "%.4f"|format(result.prices[-1].cpu) }}
+        </div>
+        <div class="savings-bar-wrap">
+          <div class="savings-bar"
+               style="width:{{ ((result.savings_vs_worst / max_saving) * 100)|int }}%">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:#888">Need prices from at least 2 vendors to show savings.</p>
+    {% endif %}
+    <a href="/compare" class="btn btn-primary" style="font-size:.85em; margin-top:8px;">
+      Search Ingredients →
+    </a>
+  </div>
+</div>
+
+<script>
+async function refreshCompare() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Refreshing…';
+  try {
+    const r = await fetch('/vendors/refresh-compare', { method: 'POST' });
+    const data = await r.json();
+    if (data.ok) {
+      btn.textContent = '✓ Done — open sheet to see 01B tab';
+      btn.style.background = '#d4edda';
+    } else {
+      btn.textContent = 'Error — see console';
+      console.error(data.error);
+    }
+  } catch(e) {
+    btn.textContent = 'Network error';
+  }
+}
+</script>
+{% endblock %}

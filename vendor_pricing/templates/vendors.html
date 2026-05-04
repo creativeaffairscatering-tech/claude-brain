@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Vendors{% endblock %}
+{% block content %}
+<h1>Vendor Status</h1>
+
+<div class="card">
+  <p style="color:#555; margin:0 0 16px;">
+    Prices in the DUMP tab, grouped by vendor. Add new vendors via
+    <code>vp manual</code> or <code>vp import-csv</code> from the terminal,
+    or run <code>vp scrape --vendor pfg</code> for automated scrapers.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Vendor</th>
+        <th style="text-align:right;">Price Records</th>
+        <th>Last Updated</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for vendor, info in status.vendors.items() %}
+      <tr>
+        <td><strong>{{ vendor }}</strong></td>
+        <td style="text-align:right;">{{ info.rows }}</td>
+        <td>{{ info.last_date or '—' }}</td>
+        <td>
+          {% if not info.last_date %}
+            <span class="badge badge-gray">NO DATA</span>
+          {% elif info.last_date >= today_minus_14 %}
+            <span class="badge badge-green">CURRENT</span>
+          {% elif info.last_date >= today_minus_90 %}
+            <span class="badge badge-yellow">AGING</span>
+          {% else %}
+            <span class="badge badge-red">STALE</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="color:#888; text-align:center; padding:20px;">
+        No vendor data found. Run <code>vp scrape</code> or <code>vp manual</code> to add prices.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Multi-Vendor Compare Tab</h2>
+  <p style="color:#555;">
+    The <strong>01B_MULTI_VENDOR_COMPARE</strong> tab in your Google Sheet shows all vendors
+    side-by-side with BEST_CPU and BEST_VENDOR columns. Refresh it whenever you add new prices.
+  </p>
+  <button class="btn btn-gold" onclick="refreshCompare()">Refresh 01B Tab Now</button>
+  <span id="compare-status" style="margin-left:12px; font-size:.9em; color:#555;"></span>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Quick Reference — CLI Commands</h2>
+  <table style="font-size:.88em;">
+    <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>vp scrape --vendor pfg</code></td><td>Scrape PFG prices → append to DUMP</td></tr>
+      <tr><td><code>vp scrape --vendor sysco</code></td><td>Scrape Sysco prices → append to DUMP</td></tr>
+      <tr><td><code>vp scrape --vendor samsclub</code></td><td>Scrape Sam's Club (no login)</td></tr>
+      <tr><td><code>vp scrape --vendor walmart</code></td><td>Scrape Walmart (no login)</td></tr>
+      <tr><td><code>vp scrape --dry-run</code></td><td>Preview rows without writing to sheet</td></tr>
+      <tr><td><code>vp manual --vendor brothers</code></td><td>Interactive entry for Brothers Produce</td></tr>
+      <tr><td><code>vp import-csv --vendor brothers --file prices.csv</code></td><td>Bulk CSV import</td></tr>
+      <tr><td><code>vp dump-status</code></td><td>Row counts + last-updated per vendor</td></tr>
+      <tr><td><code>vp extend-compare</code></td><td>Rebuild 01B_MULTI_VENDOR_COMPARE tab</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+async function refreshCompare() {
+  const status = document.getElementById('compare-status');
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Refreshing…';
+  status.textContent = '';
+  try {
+    const r = await fetch('/vendors/refresh-compare', { method: 'POST' });
+    const data = await r.json();
+    if (data.ok) {
+      btn.textContent = 'Refresh 01B Tab Now';
+      btn.disabled = false;
+      const s = data.summary;
+      status.textContent =
+        `✓ Done — ${s.rows_written} rows, ${s.vendors} vendors, ${s.ingredients} ingredients.`;
+      status.style.color = '#2a7a2a';
+    } else {
+      btn.textContent = 'Refresh 01B Tab Now';
+      btn.disabled = false;
+      status.textContent = 'Error: ' + data.error;
+      status.style.color = '#721c24';
+    }
+  } catch(e) {
+    btn.textContent = 'Refresh 01B Tab Now';
+    btn.disabled = false;
+    status.textContent = 'Network error.';
+  }
+}
+</script>
+{% endblock %}
