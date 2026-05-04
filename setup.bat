@@ -21,50 +21,54 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Python found. Installing required packages...
+python --version
+echo.
+echo Installing required packages...
 echo.
 
-pip install gspread google-auth click rich flask python-dotenv pywebview --quiet
+pip install gspread google-auth click rich flask python-dotenv
 
 if errorlevel 1 (
     echo.
-    echo ERROR: Package installation failed.
-    echo Try running this file as Administrator (right-click → Run as administrator)
-    pause
-    exit /b 1
+    echo Package installation failed. Trying with --user flag...
+    pip install --user gspread google-auth click rich flask python-dotenv
 )
 
 echo.
 echo =========================================
-echo  Setting up your credentials...
+echo  Setting up credentials and .env file...
 echo =========================================
 echo.
 
 :: Create config folder
 if not exist "%USERPROFILE%\.vendor-tracker" (
     mkdir "%USERPROFILE%\.vendor-tracker"
+    echo Created folder: %USERPROFILE%\.vendor-tracker
 )
 
-:: Check if key file already exists
-if exist "%USERPROFILE%\.vendor-tracker\service-account.json" (
-    echo Credentials file already found — skipping.
-) else (
-    echo IMPORTANT: You need your Google service account key file.
-    echo.
-    echo Please copy your service-account.json file to:
-    echo   %USERPROFILE%\.vendor-tracker\service-account.json
-    echo.
-    echo Then re-run launch.bat to start the app.
-)
-
-:: Create .env file in the app folder
+:: Create .env file pointing to the key
 set SCRIPT_DIR=%~dp0
 if not exist "%SCRIPT_DIR%.env" (
-    echo GOOGLE_SERVICE_ACCOUNT_FILE=%USERPROFILE%\.vendor-tracker\service-account.json > "%SCRIPT_DIR%.env"
-    echo SPREADSHEET_ID=1vVhrW3j2aKXT5_UaaxYY6ZIZ673a9vO2iHmsIiNBED0 >> "%SCRIPT_DIR%.env"
+    (
+        echo GOOGLE_SERVICE_ACCOUNT_FILE=%USERPROFILE%\.vendor-tracker\service-account.json
+        echo SPREADSHEET_ID=1vVhrW3j2aKXT5_UaaxYY6ZIZ673a9vO2iHmsIiNBED0
+    ) > "%SCRIPT_DIR%.env"
     echo .env file created.
 ) else (
-    echo .env file already exists — skipping.
+    echo .env file already exists.
+)
+
+echo.
+
+:: Check for the key file
+if exist "%USERPROFILE%\.vendor-tracker\service-account.json" (
+    echo Google credentials found.
+) else (
+    echo -----------------------------------------------
+    echo  ACTION REQUIRED:
+    echo  Copy your service-account.json file to:
+    echo  %USERPROFILE%\.vendor-tracker\service-account.json
+    echo -----------------------------------------------
 )
 
 echo.
@@ -72,23 +76,14 @@ echo =========================================
 echo  Creating desktop shortcut...
 echo =========================================
 
-set SHORTCUT_PATH=%USERPROFILE%\Desktop\Vendor Pricing Tracker.lnk
-set TARGET=%SCRIPT_DIR%launch.vbs
-set ICON=%SCRIPT_DIR%launch.vbs
+set SHORTCUT=%USERPROFILE%\Desktop\Vendor Pricing Tracker.lnk
 
-powershell -NoProfile -Command ^
-  "$ws = New-Object -COM WScript.Shell; ^
-   $s = $ws.CreateShortcut('%SHORTCUT_PATH%'); ^
-   $s.TargetPath = '%SCRIPT_DIR%launch.vbs'; ^
-   $s.WorkingDirectory = '%SCRIPT_DIR%'; ^
-   $s.Description = 'Vendor Pricing Tracker'; ^
-   $s.Save()"
+powershell -NoProfile -Command "$ws = New-Object -COM WScript.Shell; $s = $ws.CreateShortcut('%SHORTCUT%'); $s.TargetPath = '%SCRIPT_DIR%launch.vbs'; $s.WorkingDirectory = '%SCRIPT_DIR%'; $s.Description = 'Vendor Pricing Tracker — Creative Affairs Catering'; $s.Save()"
 
-if exist "%SHORTCUT_PATH%" (
-    echo Desktop shortcut created!
+if exist "%SHORTCUT%" (
+    echo Desktop shortcut created successfully!
 ) else (
-    echo Could not create shortcut automatically.
-    echo Manually create a shortcut to: %SCRIPT_DIR%launch.vbs
+    echo Could not create shortcut. You can manually run launch.bat instead.
 )
 
 echo.
@@ -96,6 +91,6 @@ echo =========================================
 echo  Setup complete!
 echo =========================================
 echo.
-echo To open the app: double-click "Vendor Pricing Tracker" on your desktop.
+echo Double-click "Vendor Pricing Tracker" on your Desktop to open the app.
 echo.
 pause
