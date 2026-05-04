@@ -155,11 +155,18 @@ def get_ingredient_registry(
                 return header.index(alt)
         return -1
 
-    id_col = col("ing_id")
-    name_col = col("canonical_name") if col("canonical_name") >= 0 else col("name")
+    id_col = col("ing_id") if col("ing_id") >= 0 else col("ingredient_id")
+    name_col = (col("canonical_name") if col("canonical_name") >= 0
+                else col("controlled_ingredient_name") if col("controlled_ingredient_name") >= 0
+                else col("name"))
     cat_col = col("category")
-    unit_col = col("default_unit") if col("default_unit") >= 0 else col("uom")
-    cpu_col = col("active_cpu") if col("active_cpu") >= 0 else col("cpu")
+    unit_col = (col("default_unit") if col("default_unit") >= 0
+                else col("purchase_unit") if col("purchase_unit") >= 0
+                else col("uom"))
+    cpu_col = (col("active_cpu") if col("active_cpu") >= 0
+               else col("cost_per_recipe_unit") if col("cost_per_recipe_unit") >= 0
+               else col("effective_purchase_cost") if col("effective_purchase_cost") >= 0
+               else col("cpu"))
     vendor_col = col("approved_vendor")
 
     ingredients = []
