@@ -36,3 +36,8 @@ npm-debug.log*
 *.tmp
 *.temp
 .cache/
+__pycache__/
+*.pyc
+*.pyo
+vendor_pricing/__pycache__/
+.env
