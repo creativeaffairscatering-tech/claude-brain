@@ -5,4 +5,5 @@ click==8.1.7
 rich==13.7.1
 flask==3.0.3
 python-dotenv==1.0.1
+pywebview>=4.4.1
 pytest==8.2.0
